@@ -6,8 +6,11 @@ Please refer to transformers.resize() for speed up the project.
 ## Demo
 
 
+https://github.com/egemengulpinar/depth-extraction/assets/71253469/9eaa0d18-d9d0-45c1-8ea8-78dfd9d52917
 
-https://github.com/egemengulpinar/depth-extraction/assets/71253469/28e6548a-79d7-4712-9951-909455bb50dd
+
+
+
 
 ## Usage
 
