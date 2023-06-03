@@ -22,7 +22,7 @@ model.eval()
 # Transform the input
 transform = transforms.Compose(
     [
-        transforms.Resize((384, 384)),  # Resize to dimensions divisible by 32
+        transforms.Resize((320, 480)),  # Resize to dimensions divisible by 32
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
@@ -67,10 +67,12 @@ def depth_extract_video(path):
     while True:
         # Read a frame from the video.
         ret, frame = video.read()
+        frame = cv2.resize(frame,(480, 320))
         # Check if the frame is read successfully.
         if not ret:
             break
-        cv2.imshow('Frame', depth_extract(frame))
+        cv2.imshow('Depth', depth_extract(frame))
+        cv2.imshow('Frame', frame)
  
 
         if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -97,7 +99,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
 
     parser.add_argument(
-        "--path", type=str, default=None, help="Directory path containing images"
+        "--path", type=str, default=None, help="Absolute path to the image/video"
     )
     parser.add_argument(
         "--image",
