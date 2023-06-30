@@ -64,36 +64,60 @@ def depth_extract_video(video_file, output_path, width, height, model, transform
     
     video = cv2.VideoCapture(video_file)
     fps = video.get(cv2.CAP_PROP_FPS)
+    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     # I will need to make this container agnostic but OpenCV container naming feels like too big brain for me
     fourcc = cv2.VideoWriter_fourcc(*'mpv4')
     out = cv2.VideoWriter(output_path, fourcc, float(fps), (width, height))
+    
+    skip = False
     
     if not video.isOpened():
         print("Error opening video file")
         return
     
-    while True:
-        time_start = time.time()
-        ret, frame = video.read()
-        frame = cv2.resize(frame,(width, height))
-        
-        if not ret:
-            break
-        
-        cv2.imshow('Input', frame)
-        frame = depth_extract(frame, model, transform, device)
-        cv2.imshow('Depth', frame)
-        out.write(frame)
-        
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            break
-        
-        alpha = 0.01
-        if time.time()-time_start > 0:
-            fps = (1 - alpha) * fps + alpha * 1 / (time.time()-time_start)  # exponential moving average
+    # frameskip
+    if not skip:
+        while True:
             time_start = time.time()
-        print(f"\rFPS: {round(fps,2)}", end="")
-    
+            ret, frame = video.read()
+            frame = cv2.resize(frame,(width, height))
+            
+            if not ret:
+                break
+            
+            cv2.imshow('Input', frame)
+            frame = depth_extract(frame, model, transform, device)
+            cv2.imshow('Depth', frame)
+            out.write(frame)
+            
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+            
+            alpha = 0.01
+            if time.time()-time_start > 0:
+                fps = (1 - alpha) * fps + alpha * 1 / (time.time()-time_start)  # exponential moving average
+                time_start = time.time()
+            print(f"\rFPS: {round(fps,2)}", end="")
+
+    else:
+        i = 1
+        for i in range(frame_count):
+            time_start = time.time()
+            frame = video.read()
+            
+            if not ret:
+                break
+            
+            if i % 2 == 0:
+                cv2.imshow('Input', frame)
+                frame = depth_extract(frame, model, transform, device)
+                cv2.imshow('Depth', frame)
+                out.write(frame)
+            else:
+                cv2.imshow('Input', frame)
+                #frame = Rife
+                
+        
     video.release()
     cv2.destroyAllWindows()
 
@@ -127,7 +151,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
 
     parser.add_argument(
-        "-width",
+        '-wx', '-width',
         type=int,
         help="Width of the corresponding output, must be a multiple of 32",
         default=None,
@@ -135,7 +159,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-height",
+        '-hx', '-height', 
         type=int,
         help="Height of the corresponding output, must be a multiple of 32",
         default=None,
@@ -144,17 +168,17 @@ if __name__ == "__main__":
     
     # No idea how and why custom isn't functional also no idea why I can't use 3.1 models like SWIN2_Large, help!!!!
     parser.add_argument(
-        "-model_type",
+        '-m', '-model_type',
         type=str,
         help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or path/to/model, custom isn't functional for now.",
         default="DPT_Hybrid",
-            action="store"
+        action="store"
         )
     
     parser.add_argument(
-        "-output", 
+        '-o', '-output',
         type=str,
-        help="The output's path",
+        help="The output's name",
         default=None,
         action="store"
     )

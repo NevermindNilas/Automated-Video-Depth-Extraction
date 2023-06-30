@@ -14,7 +14,7 @@ Extra requirements
 ## Acknowledgements
 
  - [isl-org/Midas](https://github.com/isl-org/MiDaS)
- - [egemengulpinar](https://github.com/egemengulpinar/depth-extraction)
+ - [egemengulpinar/depth-extraction](https://github.com/egemengulpinar/depth-extraction)
 
 
 ## Roadmap
@@ -28,7 +28,10 @@ Place all of your files inside the input folder.
 in -output use the output file name only, not entire path, it will be exported to the folder named output within the same directory
 
 currently available commands:
-- -height , -width , -output, -model_type ( coming: -codec & probably -out_path )
+- -hx, -wx, -o, -m,
+- -height , -width , -output, -model_type 
+
+- ( coming: -codec / -c, -skip / -s & -out_path / -op )
 
 Example code to run in shell:
 - python extraction.py --height 1280 --width 704 --output output.mp4
