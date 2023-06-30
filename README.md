@@ -16,8 +16,8 @@ Extra requirements
  - [isl-org/Midas](https://github.com/isl-org/MiDaS)
  - [egemengulpinar/depth-extraction](https://github.com/egemengulpinar/depth-extraction)
 
-
 ## Roadmap
+ - Image Padding in order to maintain aspect ratio
  - FrameSkip - only do the depth scan on every 2nd frame and interpolate using VFI every other frame.
  - FFmpegCV / Decord / PyAV / Vapoursynth for faster decode/encode and hopefully multithreadding
  - Increse CUDA utilization ( current peak is about 70-75% on my 3090 )
@@ -28,7 +28,6 @@ Place all of your files inside the input folder.
 in -output use the output file name only, not entire path, it will be exported to the folder named output within the same directory
 
 currently available commands:
-- -hx, -wx, -o, -m,
 - -height , -width , -output, -model_type 
 
 - ( coming: -codec / -c, -skip / -s & -out_path / -op )

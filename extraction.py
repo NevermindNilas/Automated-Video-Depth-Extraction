@@ -6,6 +6,7 @@ from PIL import Image
 import argparse
 import os
 import time
+import sys
 
 # Load the model
 # I would probably move and rename this def to a different file in order to keep this cleaner
@@ -16,7 +17,7 @@ def depth(model_type, width, height):
     #Additional Info when using cuda
     if device.type == 'cuda':
         print(torch.cuda.get_device_name(0))
-
+        
     '''
     Debugging
     entrypoints = torch.hub.list("intel-isl/MiDaS", force_reload=True)
@@ -29,7 +30,8 @@ def depth(model_type, width, height):
     model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True)                       
     if device.type == 'cuda':
         model = model.to(device)
-
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = True
     model.eval()
 
         # Transform the input
@@ -65,10 +67,17 @@ def depth_extract_video(video_file, output_path, width, height, model, transform
     video = cv2.VideoCapture(video_file)
     fps = video.get(cv2.CAP_PROP_FPS)
     frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    # this is input frame width and height
+    frame_width, frame_height = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
     # I will need to make this container agnostic but OpenCV container naming feels like too big brain for me
-    fourcc = cv2.VideoWriter_fourcc(*'mpv4')
-    out = cv2.VideoWriter(output_path, fourcc, float(fps), (width, height))
+    fourcc = cv2.VideoWriter_fourcc(*'mpv4')    
     
+    out = cv2.VideoWriter(output_path, fourcc, float(fps),(width,height))
+    
+    # Just in case someone forgets to set the width and height
+    if not (height or width):
+        height, width = frame_height, frame_width
+        
     skip = False
     
     if not video.isOpened():
@@ -80,14 +89,16 @@ def depth_extract_video(video_file, output_path, width, height, model, transform
         while True:
             time_start = time.time()
             ret, frame = video.read()
-            frame = cv2.resize(frame,(width, height))
             
             if not ret:
                 break
             
+            frame = cv2.resize(frame,(width, height))
+            
             cv2.imshow('Input', frame)
             frame = depth_extract(frame, model, transform, device)
             cv2.imshow('Depth', frame)
+            
             out.write(frame)
             
             if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -98,30 +109,44 @@ def depth_extract_video(video_file, output_path, width, height, model, transform
                 fps = (1 - alpha) * fps + alpha * 1 / (time.time()-time_start)  # exponential moving average
                 time_start = time.time()
             print(f"\rFPS: {round(fps,2)}", end="")
-
     else:
         i = 1
-        for i in range(frame_count):
+        while True:
             time_start = time.time()
-            frame = video.read()
+            ret,frame = video.read()
             
             if not ret:
                 break
             
-            if i % 2 == 0:
+            frame = cv2.resize(frame,(width, height))
+            
+            if i % 2 != 0:
                 cv2.imshow('Input', frame)
-                frame = depth_extract(frame, model, transform, device)
-                cv2.imshow('Depth', frame)
-                out.write(frame)
+                depth_frame = depth_extract(frame, model, transform, device)
+                cv2.imshow('Depth', depth_frame)
+                out.write(depth_frame)
             else:
                 cv2.imshow('Input', frame)
+                cv2.imshow('Depth', depth_frame)
+                #cv2.imshow('Depth', frame)
                 #frame = Rife
-                
-        
+            
+            i += 1
+            
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+            
+            alpha = 0.01
+            if time.time()-time_start > 0:
+                fps = (1 - alpha) * fps + alpha * 1 / (time.time()-time_start)  # exponential moving average
+                time_start = time.time()
+            print(f"\rFPS: {round(fps,2)}", end="")
+            
+          
     video.release()
     cv2.destroyAllWindows()
 
-def main(output, model_type, width, height):
+def main(output, model_type, height, width):
     
     input_path = os.path.join('.', "input")
     output_path = os.path.join('.', "output")
@@ -140,6 +165,9 @@ def main(output, model_type, width, height):
             ('.mp4', '.avi', '.mkv', '.mov'))]
     video_files.sort()
     
+    if video_files == 0:
+        sys.exit("No videos found in the input folder")
+    
     for video_file in video_files:
         video_file = os.path.join(input_path, video_file)
         output_path = os.path.join(output_path, output)
@@ -151,24 +179,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
 
     parser.add_argument(
-        '-wx', '-width',
+        '-width',
         type=int,
         help="Width of the corresponding output, must be a multiple of 32",
         default=None,
-        action="store"
     )
 
     parser.add_argument(
-        '-hx', '-height', 
+        "-height",
         type=int,
         help="Height of the corresponding output, must be a multiple of 32",
         default=None,
-        action="store"
     )
     
-    # No idea how and why custom isn't functional also no idea why I can't use 3.1 models like SWIN2_Large, help!!!!
     parser.add_argument(
-        '-m', '-model_type',
+        '-model_type',
+        required=False,
         type=str,
         help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or path/to/model, custom isn't functional for now.",
         default="DPT_Hybrid",
@@ -176,13 +202,12 @@ if __name__ == "__main__":
         )
     
     parser.add_argument(
-        '-o', '-output',
+        '-output',
         type=str,
         help="The output's name",
         default=None,
-        action="store"
     )
     args = parser.parse_args()
 
     # Run the main function with the provided arguments
-    main(args.output, args.model_type, args.width, args.height)
+    main(args.output, args.model_type, args.height, args.width)
