@@ -1,5 +1,5 @@
 # Automated-Video-Depth-Extraction 
-Real-time depth extraction from image and video using with **intel-isl/MiDaS** depth extraction model.
+Real-time depth extraction and encoding from video using with **intel-isl/MiDaS** depth extraction model.
 
 ## Dependencies
 If you have a cuda capable GPU ( Preferably Nvidia Pascal and onwards )
