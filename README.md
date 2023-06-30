@@ -7,7 +7,8 @@ Real-time depth extraction from image and video using with **intel-isl/MiDaS** d
 ## Dependencies
 If you have a cuda capable GPU ( Preferably Nvidia Pascal and onwards )
  - pip install pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-if not
+
+If not
  - pip3 install torch torchvision torchaudio
 
 extra requirements
