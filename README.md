@@ -32,10 +32,10 @@ Place all of your files inside the input folder
 
 
 currently available commands:
- - --video --image --height --width --output ( coming: --codec )
+ - -video -image -height -width -output ( coming: -codec, -skip )
 
 Example code to run in shell:
-- python extraction.py --video --height 1280 --width 704 --output output.mp4
+- python extraction.py -video -height 1280 -width 704 -output output.mp4
 
 
 ## Demo
