@@ -2,4 +2,4 @@ opencv-python
 numpy
 Pillow
 ffmpeg
-argparse
+cupy-cuda11x

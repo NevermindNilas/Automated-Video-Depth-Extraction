@@ -7,29 +7,29 @@ import os
 import sys
 from depth_extract import depth_extract_video
 
+
 def load_device(half, model_type, width, height):
-    
+    # will move this to load_device.py, but for now it's here
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device:', device)
-    #Additional Info when using cuda
+    # Additional Info when using cuda
     if device.type == 'cuda':
         print(torch.cuda.get_device_name(0))
-    
+    '''
     entrypoints = torch.hub.list("intel-isl/MiDaS", force_reload=True)
     print(entrypoints)
-    
-    # for now I am not sure if it works but my CUDA util went from 75% to 50% and VRAM also dropped heavily so I assume yes
+    '''
     if half == "True":
         print('Using half precision')
         torch.set_default_tensor_type(torch.cuda.HalfTensor)
-    
+
     model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True)
     if device.type == 'cuda':
         model = model.to(device)
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True
     model.eval()
-    
+
     # Transform the input
     transform = transforms.Compose(
         [
@@ -40,7 +40,8 @@ def load_device(half, model_type, width, height):
     )
     return device, model, transform
 
-def main(half, skip, output, model_type, height, width):
+
+def main(deflicker, half, skip, output, model_type, height, width):
     input_path = os.path.join('.', "input")
     output_path = os.path.join('.', "output")
 
@@ -50,7 +51,6 @@ def main(half, skip, output, model_type, height, width):
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    # Get the torch properties. Maybe declaring it globally was better in terms of startup times
     device, model, transform = load_device(half, model_type, width, height)
 
     video_files = [
@@ -61,15 +61,16 @@ def main(half, skip, output, model_type, height, width):
     if video_files == 0:
         sys.exit("No videos found in the input folder")
 
+    nt = 2
     for video_file in video_files:
         # Get proper paths
         video_file = os.path.join(input_path, video_file)
         output_path = os.path.join(output_path, output)
         print("Processing Video File:", video_file)
-        depth_extract_video(video_file, output_path, width, height, model, transform, device, skip, half)
+        depth_extract_video(video_file, output_path, width, height, model, transform, device, skip, half, deflicker)
+
 
 if __name__ == "__main__":
-    # Parse command line arguments
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
 
     parser.add_argument(
@@ -86,6 +87,10 @@ if __name__ == "__main__":
         default=None,
     )
 
+    # Ironically, from my own testing, DPT_Hybrid looks miles better and works much faster than DPT_Large \n
+    # which is ever so slightly contradicting the official page result, it could be due to training data though. \n
+    # DPT_Large also works horrendously ( subjectively ) with half mode so you should probably not use it unless your experience \n
+    # is any different.
     parser.add_argument(
         '-model_type',
         required=False,
@@ -109,9 +114,9 @@ if __name__ == "__main__":
         default="False",
         action="store",
     )
-    
+
     # For some apparent reason, if I used bool ) here, it would not want to take the value False or True, it only took True \n"
-    # So I went for string, it should do the job
+    # So I went for string, it should do the job until inevitably will fix it, I think?
     parser.add_argument(
         '-half',
         type=str,
@@ -119,8 +124,14 @@ if __name__ == "__main__":
         default="True",
         action="store",
     )
-    
+
+    parser.add_argument(
+        '-deflicker',
+        type=str,
+        help="deflicker the depth scan in order to normalize the output, True or False",
+        default="False",
+        action="store",
+    )
     args = parser.parse_args()
 
-    # Run the main function with the provided arguments
-    main(args.half,args.skip, args.output, args.model_type, args.height, args.width)
+    main(args.deflicker, args.half, args.skip, args.output, args.model_type, args.height, args.width)
