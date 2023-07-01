@@ -1,7 +1,7 @@
 
 
 
-# Automated-Video-Depth-Extraction 
+#Automated-Video-Depth-Extraction 
 Real-time depth extraction from image and video using with **intel-isl/MiDaS** depth extraction model.
 
 ## Dependencies
@@ -38,7 +38,7 @@ currently available commands:
  - -video -height -width -output -half ( coming: -codec, -skip )
 
 Example code to run in shell:
- - python extraction.py -video -height 1280 -width 704 -output output.mp4 -half True
+ - python inference.py -video -height 1280 -width 704 -output output.mp4 -half True
 
 
 ## Demo
