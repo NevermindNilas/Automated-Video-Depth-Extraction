@@ -33,10 +33,10 @@ extra requirements
 Place all of your files inside the input folder.
 
 currently available commands:
- - -video -height -width -output -half -deflicker ( coming: -codec, -skip )
+ - -video -height -width -output -half -deflicker -nt ( coming: -codec, -skip )
 
 Example code to run in shell:
- - python inference.py -video -height 1280 -width 704 -output output.mp4 -half True
+ - python inference.py -video -height 1280 -width 704 -half True
 
 ## Demo
 
