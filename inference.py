@@ -5,8 +5,7 @@ from PIL import Image
 import argparse
 import os
 import sys
-from depth_extract import depth_extract_video
-
+from depth_extract import depth_extract_video, depth_extract_video_with_vfi, video_threading
 
 def load_device(half, model_type, width, height):
     # will move this to load_device.py, but for now it's here
@@ -15,15 +14,15 @@ def load_device(half, model_type, width, height):
     # Additional Info when using cuda
     if device.type == 'cuda':
         print(torch.cuda.get_device_name(0))
-    '''
+    '''    
     entrypoints = torch.hub.list("intel-isl/MiDaS", force_reload=True)
     print(entrypoints)
-    '''
+    ''' 
     if half == "True":
         print('Using half precision')
         torch.set_default_tensor_type(torch.cuda.HalfTensor)
 
-    model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True)
+    model = torch.hub.load("intel-isl/MiDaS", model_type)
     if device.type == 'cuda':
         model = model.to(device)
         torch.backends.cudnn.enabled = True
@@ -41,7 +40,7 @@ def load_device(half, model_type, width, height):
     return device, model, transform
 
 
-def main(deflicker, half, skip, output, model_type, height, width):
+def main(nt, deflicker, half, skip, output, model_type, height, width):
     input_path = os.path.join('.', "input")
     output_path = os.path.join('.', "output")
 
@@ -50,6 +49,8 @@ def main(deflicker, half, skip, output, model_type, height, width):
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
+    
+    
 
     device, model, transform = load_device(half, model_type, width, height)
 
@@ -60,14 +61,23 @@ def main(deflicker, half, skip, output, model_type, height, width):
 
     if video_files == 0:
         sys.exit("No videos found in the input folder")
-
-    nt = 2
+    i=0
     for video_file in video_files:
+        
+        if output == "":
+            output = video_file + ".mp4"
+        elif output.endswith(".mp4"):
+            output = output.split('.')[0] + str(i) + ".mp4"
+        elif output.endswith(".mov", ".avi", ".mkv"):
+            print("The only accepted container for output is mp4")
+            output = output.split('.')[0] + str(i) + ".mp4"
+        else:
+            output = output + str(i) + ".mp4"
         # Get proper paths
         video_file = os.path.join(input_path, video_file)
         output_path = os.path.join(output_path, output)
         print("Processing Video File:", video_file)
-        depth_extract_video(video_file, output_path, width, height, model, transform, device, skip, half, deflicker)
+        video_threading(video_file, output_path, width, height, model, transform, skip, device, half, deflicker, nt)
 
 
 if __name__ == "__main__":
@@ -132,6 +142,14 @@ if __name__ == "__main__":
         default="False",
         action="store",
     )
+    
+    parser.add_argument(
+        '-nt',
+        type=int,
+        help="Number of threads to use for video processing, default is 1",
+        default=1,
+        action="store"
+    )
     args = parser.parse_args()
 
-    main(args.deflicker, args.half, args.skip, args.output, args.model_type, args.height, args.width)
+    main(args.nt,args.deflicker, args.half, args.skip, args.output, args.model_type, args.height, args.width)
