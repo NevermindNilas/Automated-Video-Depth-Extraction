@@ -1,6 +1,4 @@
 opencv-python
 numpy
-Pillow
-ffmpeg
 cupy-cuda11x
 timm
