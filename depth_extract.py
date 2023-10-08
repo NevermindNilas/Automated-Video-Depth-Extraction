@@ -7,26 +7,6 @@ import time
 import cupy as cp
 import os
 
-def deflicker_depth_frame(frame, prev_frame, half):
-    # Poor mans approach to deflickering
-    if half:
-        frame = cp.asarray(frame, dtype=cp.float16)
-        prev_frame = cp.asarray(prev_frame, dtype=cp.float16)
-    else:
-        frame = np.asarray(frame, dtype=np.float32)
-        prev_frame = np.asarray(prev_frame, dtype=np.float32)
-
-    diff = frame - prev_frame
-    flicker_magnitude = np.abs(diff).mean()
-    deflickering_factor = 0.5 * (flicker_magnitude / 255)
-    deflickered_frame = frame - deflickering_factor * diff
-    deflickered_frame = np.clip(deflickered_frame, 0, 255)
-
-    if half:
-        deflickered_frame = cp.asnumpy(deflickered_frame)
-        
-    return deflickered_frame
-
 def depth_extract(half, frame, model, transform, device):
     frame = Image.fromarray(frame)
     img = transform(frame).unsqueeze(0)
@@ -38,7 +18,7 @@ def depth_extract(half, frame, model, transform, device):
 
     depth_map = prediction[0].cpu().numpy()
     if half == "True":
-        depth_map = depth_map.astype(np.float16)
+        depth_map = depth_map.astype(np.float32)
         depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
         depth_map = depth_map.astype(np.uint8)
     else:
