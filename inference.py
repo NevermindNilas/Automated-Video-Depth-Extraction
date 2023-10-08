@@ -5,7 +5,7 @@ from PIL import Image
 import argparse
 import os
 import sys
-from depth_extract import depth_extract_video
+from depth_extract import depth_extract_video, depth_extract_video_deflicker
 
 def load_device(half, model_type, width, height):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -64,7 +64,10 @@ def main(deflicker, half, model_type, height, width):
         video_file = os.path.join(input_path, video_file)
         output_path = os.path.join(output_path, output)
         print("Processing Video File:", video_file)
-        depth_extract_video(video_file, output_path, width, height, model, transform, device, half, deflicker)
+        if deflicker == "True":
+            depth_extract_video_deflicker(video_file, output_path, width, height, model, transform, device, half)
+        else:
+            depth_extract_video(video_file, output_path, width, height, model, transform, device, half)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
