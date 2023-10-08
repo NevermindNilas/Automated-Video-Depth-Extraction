@@ -23,7 +23,7 @@ def deflicker_depth_frame(frame, prev_frame, half):
 
     if half:
         deflickered_frame = cp.asnumpy(deflickered_frame)
-
+        
     return deflickered_frame
 
 def depth_extract(half, frame, model, transform, device):
@@ -36,14 +36,13 @@ def depth_extract(half, frame, model, transform, device):
         prediction = model(img)
 
     depth_map = prediction[0].cpu().numpy()
-    norm_type = cv2.NORM_MINMAX
     if half == "True":
-        depth_map = depth_map.astype(cp.float32)
-        norm_type = cv2.NORM_MINMAX
-        depth_map = cv2.normalize(depth_map, None, 0, 255, norm_type=norm_type)
-        depth_map = depth_map.astype(cp.uint8)
+        depth_map = depth_map.astype(np.float32)
+        depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+        depth_map = depth_map.astype(np.uint8)
     else:
-        depth_map = cv2.normalize(depth_map, None, 255, 0, norm_type=norm_type, dtype=cv2.CV_8U)
+        depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+        depth_map = depth_map.astype(np.uint8)
 
     return depth_map
 
@@ -62,7 +61,7 @@ def depth_extract_video(video_file, output_path, width, height, model, transform
         if not ret:
             break
 
-        frame = cv2.resize(frame, (width, height))
+        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_NEAREST)
         depth_frame = depth_extract(half, frame, model, transform, device)
 
         if deflicker == "True" and prev_frame is not None:

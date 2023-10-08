@@ -6,13 +6,13 @@ Real-time depth extraction from video using with **intel-isl/MiDaS** depth extra
 
 ## Dependencies
 If you have a cuda capable GPU ( Preferably Nvidia Pascal and onwards )
- - pip install pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+ > pip install pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 If not
- - pip3 install torch torchvision torchaudio
+ > pip3 install torch torchvision torchaudio
 
 extra requirements
- - pip install -r requirements.txt
+ > pip install -r requirements.txt
 
 ## Acknowledgements
 
@@ -27,7 +27,7 @@ extra requirements
 Place all of your files inside the input folder.
 
 currently available commands:
- - -video -height -width -half -deflicker ( coming: -codec, -skip )
+ - -height -width -half -deflicker ( coming: -codec, -skip )
 
 Example code to run in terminal:
  - python inference.py -video -height 1280 -width 704 -half True
