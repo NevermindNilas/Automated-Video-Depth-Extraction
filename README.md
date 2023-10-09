@@ -30,7 +30,7 @@ currently available commands:
  - -height -width -half -nt ( coming: -codec, -deflicker -skip )
 
 Example code to run in terminal:
- > python inference.py -video -height 1280 -width 704 -half True
+ > python inference.py -video -height 1280 -width 704 -half True -nt 2
 
 ## Demo
 
