@@ -27,7 +27,7 @@ extra requirements
 Place all of your files inside the input folder.
 
 currently available commands:
- - -height -width -half -deflicker ( coming: -codec, -skip )
+ - -height -width -half -nt ( coming: -codec, -deflicker -skip )
 
 Example code to run in terminal:
  > python inference.py -video -height 1280 -width 704 -half True

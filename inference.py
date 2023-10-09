@@ -1,11 +1,11 @@
 import torch
-import numpy as np
 import torchvision.transforms as transforms
 from PIL import Image
 import argparse
 import os
 import sys
-from depth_extract import depth_extract_video, depth_extract_video_deflicker
+from depth_extract import depth_extract_video
+from deflicker import depth_extract_deflicker
 
 def load_device(half, model_type, width, height):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,7 +27,7 @@ def load_device(half, model_type, width, height):
     ])
     return device, model, transform
 
-def main(deflicker, half, model_type, height, width):
+def main(deflicker, half, model_type, height, width, nt):
     input_path = os.path.join('.', "input")
     output_path = os.path.join('.', "output")
 
@@ -65,9 +65,9 @@ def main(deflicker, half, model_type, height, width):
         output_path = os.path.join(output_path, output)
         print("Processing Video File:", video_file)
         if deflicker == "True":
-            depth_extract_video_deflicker(video_file, output_path, width, height, model, transform, device, half)
+            depth_extract_deflicker(video_file, output_path, width, height, model, transform, device, half)
         else:
-            depth_extract_video(video_file, output_path, width, height, model, transform, device, half)
+            depth_extract_video(video_file, output_path, width, height, model, transform, device, half, nt)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
@@ -77,6 +77,7 @@ if __name__ == "__main__":
     parser.add_argument('-model_type', required=False, type=str, help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or path/to/model, custom isn't functional for now.", default="DPT_Hybrid", action="store")
     parser.add_argument('-half', type=str, help="Cuda half mode, more performance for hardly less quality, False or True", default="True", action="store")
     parser.add_argument('-deflicker', type=str, help="deflicker the depth scan in order to normalize the output, True or False", default="False", action="store")
+    parser.add_argument('-nt', type=int, help="Number of threads to use, default is 1", default=1, action="store")
     args = parser.parse_args()
 
-    main(args.deflicker, args.half, args.model_type, args.height, args.width)
+    main(args.deflicker, args.half, args.model_type, args.height, args.width, args.nt)

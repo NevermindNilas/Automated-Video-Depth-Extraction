@@ -2,3 +2,4 @@ opencv-python
 numpy
 cupy-cuda11x
 timm
+Pillow
