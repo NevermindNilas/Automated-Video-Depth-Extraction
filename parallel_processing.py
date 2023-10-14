@@ -5,10 +5,10 @@ from threading import Thread # library for implementing multi-threaded processin
 # Yoinked and then modified from:
 # https://github.com/vasugupta9/DeepLearningProjects/blob/main/MultiThreadedVideoProcessing/video_processing_parallel.py 
 
-global buffer
-buffer = []
+global decode_buffer
+decode_buffer = []
 
-class VideoStream:
+class VideoDecodeStream:
     def __init__(self, video_file):
         self.vcap = cv2.VideoCapture(video_file)
             
@@ -19,9 +19,9 @@ class VideoStream:
 
         self.stopped = True 
 
+        # initialize a frame in order to not store a none value in the buffer
         self.grabbed , self.frame = self.vcap.read()
-        buffer.append(self.frame)
-        #print(self.frame)
+        decode_buffer.append(self.frame)
         if self.grabbed is False :
             print('[Exiting] No more frames to read')
             exit(0)
@@ -44,13 +44,12 @@ class VideoStream:
                 self.stopped = True
                 break
             
-            buffer.append(frame)
+            decode_buffer.append(frame)
         self.vcap.release()
 
     def read(self):
-        if buffer:
-            frame = buffer.pop(0)
-            #print(frame)
+        if decode_buffer:
+            frame = decode_buffer.pop(0)
             return frame
 
     def stop(self):
@@ -67,3 +66,34 @@ class VideoStream:
     def fourcc(self):
         self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         return self.fourcc
+ 
+class VideoWriteStream:
+    '''
+    Encode the depth scan frames as soon as they are ready and parallelize the process
+    
+    Work  in progress
+    '''
+    def __init__(self, output_file, fourcc, fps, width, height):
+        self.output_file = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
+        self.t = Thread(target=self.update , args=())
+        self.t.daemon = True
+        
+    def start(self):
+        self.stopped = False
+        self.t.start()
+    
+    def update(self):
+        while True:
+            if self.stopped is True:
+                break
+
+class DepthScanning:
+    '''
+    Do the depth scan on nt threads
+    
+    Work  in progress
+    '''
+    def __init__(self, model, device, half, nt):
+        self.model = model
+        self.device = device
+        self.half = half

@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import time
-from parallel_processing import VideoStream
+from parallel_processing import VideoDecodeStream, VideoWriteStream
 
 def depth_extract(half, frame, model, device):
     with torch.no_grad():
@@ -25,7 +25,7 @@ def depth_extract(half, frame, model, device):
         return depth_map
 
 def depth_extract_video(video_file, output_path, width, height, model, device, half, nt):
-    video = VideoStream(video_file)
+    video = VideoDecodeStream(video_file)
     fps = video.get_fps()
     fourcc = video.fourcc()
     #frame_count = int(video.get_frame_count())
@@ -38,6 +38,7 @@ def depth_extract_video(video_file, output_path, width, height, model, device, h
         frame = video.read()
         if frame is None and video.stopped is True:
             break
+        
         frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_NEAREST)    
         depth_frame = depth_extract(half, frame, model, device)
         

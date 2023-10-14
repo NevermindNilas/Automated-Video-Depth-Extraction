@@ -21,8 +21,10 @@ def main(deflicker, half, model_type, height, width, nt):
     os.makedirs(input_path, exist_ok=True)
     os.makedirs(output_path, exist_ok=True)
 
-    width = (width // 32 + 1) * 32
-    height = (height // 32 + 1) * 32
+    if width % 32 != 0:
+        width = (width // 32 + 1) * 32
+    if height % 32 != 0:
+        height = (height // 32 + 1) * 32
 
     device, model = load_device(half, model_type)
 
