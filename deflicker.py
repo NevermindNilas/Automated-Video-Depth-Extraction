@@ -7,6 +7,7 @@ from depth_extract import depth_extract
 
 '''
 Work in progress
+
 '''
 def depth_extract_deflicker(video_file, output_path, width, height, model, transform, device, half):
     print("Deflickering is enabled, this will reduce the FPS")
