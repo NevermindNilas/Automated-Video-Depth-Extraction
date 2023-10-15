@@ -12,8 +12,7 @@ def depth_extract(half, frame, model, device):
             img = img.half()
             model = model.half()
         img = img.to(device)
-        with torch.no_grad():
-            prediction = model(img)
+        prediction = model(img)
         depth_map = prediction[0].cpu().numpy()
         if half == "True":
             depth_map = depth_map.astype(np.float32)
@@ -24,7 +23,7 @@ def depth_extract(half, frame, model, device):
             depth_map = depth_map.astype(np.uint8)
         return depth_map
 
-def depth_extract_video(video_file, output_path, width, height, model, device, half, nt):
+def depth_extract_video(video_file, output_path, width, height, model, device, half):
     video = VideoDecodeStream(video_file)
     fps = video.get_fps()
     fourcc = video.fourcc()

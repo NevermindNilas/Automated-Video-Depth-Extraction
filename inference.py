@@ -7,12 +7,21 @@ from depth_extract import depth_extract_video
 from deflicker import depth_extract_deflicker
 
 def load_device(half, model_type):
+    '''
+    I've sort of figured out why other version of Midas wouldn't work,
+    it seems like the only compatible version of the library timm that works with
+    Midas models 3.1 is timm 0.6.7.
+    
+    Sadly, whilst I would love to downgrade from the latest available version of timm,
+    the performance degradation is too much to ignore, so I'll have to stick with the
+    current version.
+    '''
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if half == "True":
         torch.set_default_tensor_type(torch.cuda.HalfTensor)
     model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True).to(device)
     model.eval()
-
+    
     return device, model
 
 def main(deflicker, half, model_type, height, width, nt):
@@ -42,13 +51,13 @@ def main(deflicker, half, model_type, height, width, nt):
         if deflicker == "True":
             depth_extract_deflicker(video_file, output_path, width, height, model, device, half)
         else:
-            depth_extract_video(video_file, output_path, width, height, model, device, half, nt)
+            depth_extract_video(video_file, output_path, width, height, model, device, half)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
     parser.add_argument('-width', type=int, help="Width of the corresponding output, must be a multiple of 32", default=None)
     parser.add_argument("-height", type=int, help="Height of the corresponding output, must be a multiple of 32", default=None)
-    parser.add_argument('-model_type', required=False, type=str, help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or path/to/model, custom isn't functional for now.", default="DPT_Hybrid", action="store")
+    parser.add_argument('-model_type', required=False, type=str, help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or MiDas_small.", default="DPT_Hybrid", action="store")
     parser.add_argument('-half', type=str, help="Cuda half mode, more performance for hardly less quality, False or True", default="True", action="store")
     parser.add_argument('-deflicker', type=str, help="deflicker the depth scan in order to normalize the output, True or False", default="False", action="store")
     parser.add_argument('-nt', type=int, help="Number of threads to use, default is 1", default=1, action="store")
