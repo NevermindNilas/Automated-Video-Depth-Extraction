@@ -6,6 +6,9 @@ import sys
 from depth_extract import depth_extract_video
 from deflicker import depth_extract_deflicker
 
+import warnings # Getting rid of that annoying warning
+warnings.filterwarnings("ignore", message="Mapping deprecated model name vit_base_resnet50_384 to current vit_base_r50_s16_384.orig_in21k_ft_in1k.")
+
 def load_device(half, model_type):
     '''
     I've sort of figured out why other version of Midas wouldn't work,
@@ -47,7 +50,8 @@ def main(deflicker, half, model_type, height, width, nt):
         output = os.path.splitext(video_file)[0] + ".mp4"
         output_path = os.path.join(output_path, output)
         video_file = os.path.join(input_path, video_file)
-        print("Processing Video File:", os.path.basename(video_file))
+        print("\n") # Force new line for each video to make it more user readable
+        print("====> Processing Video File:", os.path.basename(video_file), "<====")
         if deflicker == "True":
             depth_extract_deflicker(video_file, output_path, width, height, model, device, half)
         else:

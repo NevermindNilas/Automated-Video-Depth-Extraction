@@ -27,12 +27,14 @@ def depth_extract_video(video_file, output_path, width, height, model, device, h
     video = VideoDecodeStream(video_file)
     fps = video.get_fps()
     fourcc = video.fourcc()
-    #frame_count = int(video.get_frame_count())
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height), isColor=False) # isColor=False is needed in order to not have to cvtColor to BGR
+    
+    #out = VideoWriteStream(output_path, fourcc, fps, width, height) # Work in progress
+    #out.start() # Work in progress
+    
     video.start()
     start_time = time.time()    
     i = 0
-
     while True:
         frame = video.read()
         if frame is None and video.stopped is True:
@@ -41,7 +43,9 @@ def depth_extract_video(video_file, output_path, width, height, model, device, h
         frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_NEAREST)    
         depth_frame = depth_extract(half, frame, model, device)
         
+        
         out.write(depth_frame)
+        
         cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
         
         if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -55,4 +59,4 @@ def depth_extract_video(video_file, output_path, width, height, model, device, h
     total_process_time = time.time() - start_time
     print (f"Process done in {total_process_time:.2f} seconds") 
     video.stop()
-    out.release()
+    

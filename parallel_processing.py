@@ -1,30 +1,23 @@
-# importing required libraries 
 import cv2 
 import time 
-from threading import Thread # library for implementing multi-threaded processing 
+from threading import Thread
+from globals import decode_buffer, write_buffer
+
+
+#from decord import VideoReader
+#from decord import cpu
+
 # Yoinked and then modified from:
 # https://github.com/vasugupta9/DeepLearningProjects/blob/main/MultiThreadedVideoProcessing/video_processing_parallel.py 
 
-global decode_buffer
-decode_buffer = []
 
 class VideoDecodeStream:
     def __init__(self, video_file):
         self.vcap = cv2.VideoCapture(video_file)
-            
-        self.grabbed , self.frame = self.vcap.read()
-        if self.grabbed is False :
-            print('[Exiting] No more frames to read')
-            exit(0)
-
-        self.stopped = True 
 
         # initialize a frame in order to not store a none value in the buffer
         self.grabbed , self.frame = self.vcap.read()
         decode_buffer.append(self.frame)
-        if self.grabbed is False :
-            print('[Exiting] No more frames to read')
-            exit(0)
 
         self.t = Thread(target=self.update, args=())
         self.t.daemon = True 
@@ -37,8 +30,7 @@ class VideoDecodeStream:
         while True :
             if self.stopped is True :
                 break
-            grabbed, frame = self.vcap.read(cv2.IMREAD_GRAYSCALE)
-            
+            grabbed, frame = self.vcap.read()
             if grabbed is False :
                 print('The video buffering has been finished')
                 self.stopped = True
@@ -70,22 +62,29 @@ class VideoDecodeStream:
 class VideoWriteStream:
     '''
     Encode the depth scan frames as soon as they are ready and parallelize the process
-    
+
+    I still can't quite figure out why this doesn't work.
     Work  in progress
     '''
     def __init__(self, output_file, fourcc, fps, width, height):
-        self.output_file = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
-        self.t = Thread(target=self.update , args=())
-        self.t.daemon = True
+        self.output_file = cv2.VideoWriter(output_file, fourcc, fps, (width, height), isColor=False)
+        self.thread = Thread(target=self.update , args=())
+        self.thread.daemon = True
         
     def start(self):
-        self.stopped = False
-        self.t.start()
+        self.thread.start()
     
     def update(self):
+        time.sleep(1)
         while True:
-            if self.stopped is True:
+            if len(write_buffer) > 0:
+                self.output_file.write(write_buffer.pop(0))
+            if len(write_buffer) == 0 and len(decode_buffer) == 0:
                 break
+        self.output_file.release()
+        
+    def writer(self, frame):
+        write_buffer.append(frame)
 
 class DepthScanning:
     '''
