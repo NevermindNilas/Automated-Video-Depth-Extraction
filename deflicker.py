@@ -1,57 +1,74 @@
+import torch
 import cv2
 import numpy as np
 from PIL import Image
 import time
-import os
-from depth_extract import depth_extract
+from parallel_processing import VideoDecodeStream, VideoWriteStream
+from globals import deflicker_buffer
 
 '''
 Work in progress
 
 '''
+def depth_extract(half, frame, model, device):
+    with torch.no_grad():
+        img = torch.from_numpy(frame).unsqueeze(0).permute(0, 3, 1, 2)
+        if half == "True":
+            img = img.half()
+            model = model.half()
+        img = img.to(device)
+        prediction = model(img)
+        depth_map = prediction[0].cpu().numpy()
+        if half == "True":
+            depth_map = depth_map.astype(np.float32)
+            depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+            depth_map = depth_map.astype(np.uint8)
+        else:
+            depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+            depth_map = depth_map.astype(np.uint8)
+        return depth_map
+    
 def depth_extract_deflicker(video_file, output_path, width, height, model, transform, device, half):
     print("Deflickering is enabled, this will reduce the FPS")
     
-    video = cv2.VideoCapture(video_file)
-    fps = video.get(cv2.CAP_PROP_FPS)
-    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    fourcc = cv2.VideoWriter_fourcc(*'mpv4')
-    out = cv2.VideoWriter(output_path, fourcc, float(fps), (width, height))
-    output_folder = os.path.join(output_path, "temp_folder")
-
+    video = VideoDecodeStream(video_file)
+    fps = video.get_fps()
+    fourcc = video.fourcc()
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height), isColor=False) # isColor=False is needed in order to not have to cvtColor to BGR
     depth_frames = []
     start_time = time.time()
     
-    #frame_count = 25
-    temp_folder = os.path.join(output_folder, "temp_folder")
-    if not os.path.exists(temp_folder):
-        os.makedirs(temp_folder)
-        
-    for i in range(frame_count):
-        ret, frame = video.read()
-        if not ret:
+    #out = VideoWriteStream(output_path, fourcc, fps, width, height) # Work in progress
+    #out.start() # Work in progress
+    
+    video.start()
+    start_time = time.time()    
+    i = 0
+    while True:
+        frame = video.read()
+        if frame is None and video.stopped is True:
             break
-
-        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_NEAREST)
-        depth_frame = depth_extract(half, frame, model, transform, device)
         
-        depth_frames.append(depth_frame)
+        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_NEAREST)    
+        depth_frame = depth_extract(half, frame, model, device)
         
-        cv2.imshow('Depth, press CTRL + C inside terminal to close', depth_frame)
-
+        
+        deflicker_buffer.append(depth_frame)
+        
+        cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
+        
         if cv2.waitKey(25) & 0xFF == ord('q'):
-            break
-
+            break     
+            
         elapsed_time = time.time() - start_time
         current_fps = (i + 1) / elapsed_time
-        print(f"Current FPS: {round(current_fps, 2)}", end="\r")
+        print(f"Current FPS: {round(current_fps, 2)}", end="\r") 
+        i += 1
 
-    video.release()
-    cv2.destroyAllWindows()  
+    total_process_time = time.time() - start_time
+    print (f"Process done in {total_process_time:.2f} seconds") 
+    video.stop()
     
-    for i, depth_frame in enumerate(depth_frames):
-        filename = os.path.join(temp_folder, f"{i:06d}.png")
-        cv2.imwrite(filename, depth_frame)
     
 '''    
     print(f"Depth frames written to {temp_folder}")

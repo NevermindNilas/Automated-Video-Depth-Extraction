@@ -1,8 +1,8 @@
 import cv2 
 import time 
 from threading import Thread
-from globals import decode_buffer, write_buffer
-
+from globals import decode_buffer, write_buffer, deflicker_buffer
+import numpy as np
 
 #from decord import VideoReader
 #from decord import cpu
@@ -96,3 +96,39 @@ class DepthScanning:
         self.model = model
         self.device = device
         self.half = half
+    
+class Deflicker:
+    """
+    Delficker using a median filter
+    """
+   
+    def __init__(self):
+       self.thread = Thread(target=self.update , args=())
+       self.thread.daemon = True
+
+    def start(self):
+        self.thread.start()
+    
+    def update(self):
+        time.sleep(3) # wait a few seconds for some frames to build up
+        while True:
+            if len(deflicker_buffer) > 0:
+                frame = deflicker_buffer.pop(0)
+                # Convert the frame to grayscale
+                #gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                # Compute the median of the grayscale frame using a 3x3 kernel
+                median = cv2.medianBlur(frame, 3)
+                # Compute the difference between the median and the original frame
+                diff = cv2.absdiff(frame, median)
+                # Compute the thresholded difference to remove small changes
+                thresh = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)[1]
+                # Apply a morphological closing operation to fill in gaps
+                kernel = np.ones((3, 3), np.uint8)
+                thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+                # Apply the thresholded difference to the original frame to remove flicker
+                deflickered = cv2.bitwise_and(frame, frame, mask=thresh)
+                write_buffer.append(deflickered)
+            
+            if len(deflicker_buffer) == 0 and len(decode_buffer) == 0:
+                break
+        
