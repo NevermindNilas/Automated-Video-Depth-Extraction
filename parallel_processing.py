@@ -1,8 +1,9 @@
 import cv2 
 import time 
 from threading import Thread
-from globals import decode_buffer, write_buffer, deflicker_buffer
+from globals import decode_buffer, write_buffer, deflicker_buffer, video_player_buffer, depth_scan_buffer
 import numpy as np
+import torch
 
 #from decord import VideoReader
 #from decord import cpu
@@ -12,11 +13,14 @@ import numpy as np
 
 
 class VideoDecodeStream:
-    def __init__(self, video_file):
+    def __init__(self, video_file, width, height):
         self.vcap = cv2.VideoCapture(video_file)
+        self.width = width
+        self.height = height
 
         # initialize a frame in order to not store a none value in the buffer
         self.grabbed , self.frame = self.vcap.read()
+        self.frame = cv2.resize(self.frame, (self.width, self.height))
         decode_buffer.append(self.frame)
 
         self.t = Thread(target=self.update, args=())
@@ -30,12 +34,14 @@ class VideoDecodeStream:
         while True :
             if self.stopped is True :
                 break
+            
             grabbed, frame = self.vcap.read()
             if grabbed is False :
                 print('The video buffering has been finished')
                 self.stopped = True
                 break
             
+            frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
             decode_buffer.append(frame)
         self.vcap.release()
 
@@ -86,21 +92,77 @@ class VideoWriteStream:
     def writer(self, frame):
         write_buffer.append(frame)
 
-class DepthScanning:
-    '''
-    Do the depth scan on nt threads
+'''class DepthScanning:
+
+    #Do the depth scan on nt threads
     
-    Work  in progress
-    '''
-    def __init__(self, model, device, half, nt):
+    #Work  in progress
+
+    def __init__(self, model, device, half, nt, width, height):
         self.model = model
         self.device = device
         self.half = half
+        self.nt = nt
+        self.width = width
+        
+        self.t = Thread(target=self.update, args=())
+        self.t.daemon = True 
+        
+    def start(self):
+        self.thread.start()
     
+    def udpate(self):
+        while True:
+            if len(decode_buffer) > 0:
+                frame = decode_buffer.pop(0)
+                frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_NEAREST)
+                with torch.no_grad():
+                    img = torch.from_numpy(frame).unsqueeze(0).permute(0, 3, 1, 2)
+                    if self.half == "True":
+                        img = img.half()
+                        model = model.half()
+                    img = img.to(self.device)
+                    prediction = model(img)
+                    depth_map = prediction[0].cpu().numpy()
+                    if self.half == "True":
+                        depth_map = depth_map.astype(np.float32)
+                        depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+                        depth_map = depth_map.astype(np.uint8)
+                    else:
+                        depth_map = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min()) * 255
+                        depth_map = depth_map.astype(np.uint8)
+                    depth_scan_buffer.append(depth_map)
+                
+                if len(decode_buffer) == 0 and len(depth_scan_buffer) == 0:
+                    break
+    
+class VideoPlayerStream:
+
+    #Video player buffer
+    #Work in progress
+
+    def __init__(self):
+        self.thread = Thread(target=self.update, args=())
+        self.thread.daemon = True
+    
+    def start(self):
+        self.thread.start()
+    
+    def update(self):
+        time.sleep(1) # wait a second for some frames to build up
+        while True:
+            if len(video_player_buffer) > 0:
+                frame = video_player_buffer.pop(0)
+                cv2.imshow('Depth, press CTRL + C inside the terminal to exit', frame)
+            if len(video_player_buffer) == 0 and len(decode_buffer) == 0:
+                break
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+            
 class Deflicker:
-    """
-    Delficker using a median filter
-    """
+
+    #Delficker using a median filter
+
    
     def __init__(self):
        self.thread = Thread(target=self.update , args=())
@@ -131,4 +193,5 @@ class Deflicker:
             
             if len(deflicker_buffer) == 0 and len(decode_buffer) == 0:
                 break
-        
+
+'''

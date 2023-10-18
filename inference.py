@@ -33,6 +33,9 @@ def main(deflicker, half, model_type, height, width, nt):
     os.makedirs(input_path, exist_ok=True)
     os.makedirs(output_path, exist_ok=True)
 
+    if nt >= 2:
+        print( "====> Number of Extraction threads was set to --", nt, "-- any value equal or greater than 2 might saturate the cuda core count")
+        
     if width % 32 != 0:
         print("====> The width is not divisible by 32, rounding up to the nearest multiple of 32 <====") # added them back in
         width = (width // 32 + 1) * 32
@@ -57,14 +60,14 @@ def main(deflicker, half, model_type, height, width, nt):
         if deflicker == "True":
             depth_extract_deflicker(video_file, output_path, width, height, model, device, half)
         else:
-            depth_extract_video(video_file, output_path, width, height, model, device, half)
+            depth_extract_video(video_file, output_path, width, height, model, device, half, nt)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
     parser.add_argument('-width', type=int, help="Width of the corresponding output, must be a multiple of 32", default=None)
     parser.add_argument("-height", type=int, help="Height of the corresponding output, must be a multiple of 32", default=None)
     parser.add_argument('-model_type', required=False, type=str, help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or MiDas_small.", default="DPT_Hybrid", action="store")
-    parser.add_argument('-half', type=str, help="Cuda half mode, more performance for hardly less quality, False or True", default="False", action="store")
+    parser.add_argument('-half', type=str, help="Cuda half mode, more performance for hardly less quality, False or True, True by default", default="True", action="store")
     parser.add_argument('-deflicker', type=str, help="deflicker the depth scan in order to normalize the output, True or False", default="False", action="store")
     parser.add_argument('-nt', type=int, help="Number of threads to use, default is 1", default=1, action="store")
     args = parser.parse_args()
