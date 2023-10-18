@@ -36,12 +36,12 @@ def main(deflicker, half, model_type, height, width, nt):
     if nt >= 2:
         print( "====> Number of Extraction threads was set to --", nt, "-- any value equal or greater than 2 might saturate the cuda core count")
         
-    if width % 32 != 0:
-        print("====> The width is not divisible by 32, rounding up to the nearest multiple of 32 <====") # added them back in
-        width = (width // 32 + 1) * 32
-    if height % 32 != 0:
-        print("====> The height is not divisible by 32, rounding up to the nearest multiple of 32 <====")
-        height = (height // 32 + 1) * 32
+    if width % 8 != 0:
+        print("====> The width is not divisible by 8, rounding up to the nearest multiple of 8 <====") # added them back in
+        width = (width // 8 + 1) * 8
+    if height % 8 != 0:
+        print("====> The height is not divisible by 8, rounding up to the nearest multiple of 8 <====")
+        height = (height // 8 + 1) * 8
 
     device, model = load_device(half, model_type)
 

@@ -36,7 +36,7 @@ Currently available commands include:
 - -nt
 
 Example code to run in terminal:
- > python inference.py -video -height 1280 -width 704 -half True -nt 2
+ > python inference.py -video -height 1280 -width 720 -half True -nt 2
 
 ## Demo
 
