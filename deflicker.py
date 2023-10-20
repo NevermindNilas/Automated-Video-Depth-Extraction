@@ -3,13 +3,9 @@ import cv2
 import numpy as np
 from PIL import Image
 import time
-from parallel_processing import VideoDecodeStream, VideoWriteStream
-from globals import deflicker_buffer
+from parallel_processing import VideoDecodeStream
 
-'''
-Work in progress
 
-'''
 def depth_extract(half, frame, model, device):
     with torch.no_grad():
         img = torch.from_numpy(frame).unsqueeze(0).permute(0, 3, 1, 2)

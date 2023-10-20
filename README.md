@@ -6,7 +6,7 @@ Effortlessly achieve real-time depth extraction from videos using the advanced i
 
 ## Dependencies
 Ensure the presence of a CUDA-capable GPU, preferably Nvidia Pascal and onwards, for optimal performance.
- > pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+ > pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 For systems without a CUDA-capable GPU:
  > pip3 install torch torchvision torchaudio
@@ -32,11 +32,12 @@ Currently available commands include:
 
 - -height
 - -width
-- -half
-- -nt
+- -half ( use cuda half precision, increase performance for close to no quality loss, True or Falsse, set to True by default)
+- -nt ( number of threads to utilize, set to 1 by defautl)
+- -v (option to show images, True or False, set to True by default )
 
 Example code to run in terminal:
- > python inference.py -video -height 1280 -width 720 -half True -nt 2
+ > python inference.py -video -height 1280 -width 720 -half True -nt 2 -v False
 
 ## Demo
 

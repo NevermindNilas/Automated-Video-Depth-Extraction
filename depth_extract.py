@@ -4,7 +4,6 @@ import numpy as np
 import concurrent.futures
 import time
 from parallel_processing import VideoDecodeStream
-from globals import video_player_buffer
 import asyncio
 
 def depth_extract(half, frame, model, device):
@@ -25,65 +24,74 @@ def depth_extract(half, frame, model, device):
             depth_map = depth_map.astype(np.uint8)
         return depth_map
 
-def depth_extract_video(video_file, output_path, width, height, model, device, half, nt):
+def depth_extract_video(video_file, output_path, width, height, model, device, half, nt, verbose):
     video = VideoDecodeStream(video_file, width, height)
     fps = video.get_fps()
     fourcc = video.fourcc()
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height), isColor=False)
     video.start()
     start_time = time.time()
-    i = 0
-    #video_player = VideoPlayerStream()
-    #video_player.start()
-    current_fps = 0
 
-    if nt >= 2:
-        async def update_fps(current_fps, i, start_time):
-            elapsed_time = time.time() - start_time
-            current_fps = (i + 1) / elapsed_time
-            print(f"Current FPS: {round(current_fps, 2)}", end="\r")
-            return current_fps
-        
+    async def update_fps(current_fps, i, start_time):
+        elapsed_time = time.time() - start_time
+        current_fps = (i + 1) / elapsed_time
+        print(f"Current FPS: {round(current_fps, 2)}", end="\r")
+        return current_fps
+    
+    async def main():
+        loop = asyncio.get_running_loop()
+        current_fps = 0
+        i = 0
+        start_time = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=nt) as executor:
             futures = []
             while True:
                 frame = video.read()
                 if frame is None and video.stopped is True:
                     break
-
+                
                 future = executor.submit(depth_extract, half, frame, model, device)
                 futures.append(future)
-
                 if len(futures) >= nt:
                     depth_frames = [f.result() for f in futures]
                     for depth_frame in depth_frames:
                         out.write(depth_frame)
-                        cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
+                        if verbose == "True": # Imshow actually has a 10% performance hit so if you don't need it, don't use it
+                            cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
                     futures = []
-
+                    
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
+                
                 i += 1
-                current_fps = asyncio.run(update_fps(current_fps, i, start_time))
+                task = loop.create_task(update_fps(current_fps, i, start_time))
+                current_fps = await task
                 
-    else:
-        while True:
-            frame = video.read()
-            if frame is None and video.stopped is True:
-                break
-
-            depth_frame = depth_extract(half, frame, model, device)
-            out.write(depth_frame)       
-            cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
+        video.stop()
+        out.release()
+        cv2.destroyAllWindows()
+        
+    asyncio.run(main())
             
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break     
-                
-            elapsed_time = time.time() - start_time
-            current_fps = (i + 1) / elapsed_time
-            print(f"Current FPS: {round(current_fps, 2)}", end="\r") 
-            i += 1
-                    
+
     total_process_time = time.time() - start_time
     print(f"Process done in {total_process_time:.2f} seconds")
     video.stop()
+    
+    '''    
+    while True:
+        frame = video.read()
+        if frame is None and video.stopped is True:
+            break
+        depth_frame = depth_extract(half, frame, model, device)
+        out.write(depth_frame)       
+        cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
+        
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break     
+            
+        elapsed_time = time.time() - start_time
+        current_fps = (i + 1) / elapsed_time
+        print(f"Current FPS: {round(current_fps, 2)}", end="\r") 
+        i += 1'''
+                
