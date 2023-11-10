@@ -97,13 +97,57 @@ class DepthScanStream:
     def read(self):
         return self.depth_buffer.pop(0) if self.depth_buffer else None
 
+class VideoEncodeStream:
+    def __init__(self, video_stream, depth_stream, width, height, output_path):
+        self.video_stream = video_stream
+        self.depth_stream = depth_stream
+        self.width = width
+        self.height = height
+        self.output_path = output_path
+        self.out = cv2.VideoWriter(self.output_path, self.video_stream.get_fourcc(), self.video_stream.get_fps(), (self.width, self.height), isColor=False)
+        self.thread = Thread(target=self.update, args=())
+        self.thread.daemon = True
+    
+    def start(self):
+        self.stopped = False
+        self.thread.start()
+    
+    def stop(self):
+        self.stopped = True
+    
+    def update(self):
+        while not self.stopped:
+            image = self.depth_stream.read()
+            if image is not None:
+                self.out.write(image)
+            elif self.video_stream.stopped == True and self.depth_stream.stopped == True:
+                print('The video encoding has been finished')
+                self.stopped = True
+                break
+            
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                self.stopped = True
+                break
+        cv2.destroyAllWindows()
+            
+def load_model(model_type):
+    " Had to separate load model from videodepthstream because of new users who had to download the model first could run into issues with timing "
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True).to(device)
+    #model = torch.hub.load("facebookresearch/dinov2", model="dinov2_vitl14").to(device) WTH is this model?? WHY DO I NEED 2 MODELS TO DO ONE JOB???
+    model.eval()
+    model.cuda()
+    
+    return model, device
+
 def depth_extract_video(video_file, output_path, width, height, half, nt, verbose, model_type):
     model, device = load_model(model_type)
     video_stream = VideoDecodeStream(video_file, width, height)
     video_stream.start()
     depth_stream = DepthScanStream(half, video_stream, model, device)
     depth_stream.start()
-    
+    #output_stream = VideoEncodeStream(video_stream, depth_stream, width, height, output_path)
+    #output_stream.start()
     out = cv2.VideoWriter(output_path, video_stream.get_fourcc(), video_stream.get_fps(), (width, height), isColor=False)
     start_time = time.time()
 
@@ -123,18 +167,7 @@ def depth_extract_video(video_file, output_path, width, height, half, nt, verbos
         
         if cv2.waitKey(25) & 0xFF == ord('q'):
             break
-        
-    out.release()
+            
     cv2.destroyAllWindows()
     total_process_time = time.time() - start_time
     print(f"Process done in {total_process_time:.2f} seconds")
-
-def load_model(model_type):
-    " Had to separate load model from videodepthstream because of new users who had to download the model first could run into issues with timing "
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True).to(device)
-    #model = torch.hub.load("facebookresearch/dinov2", model="dinov2_vitl14").to(device) WTH is this model?? WHY DO I NEED 2 MODELS TO DO ONE JOB???
-    model.eval()
-    model.cuda()
-    
-    return model, device
