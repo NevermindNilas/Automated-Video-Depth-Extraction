@@ -24,13 +24,12 @@ def main(deflicker, half, model_type, height, width, nt, verbose):
     if width is None or height is None:
         sys.exit("You must specify both width and height")
     elif width % 32 != 0:
-        print("The width is not divisible by 32, rounding up to the nearest multiple of 32")
+        print("The width is not divisible by 32, rounding up to the nearest multiple:", width)
         width = (width // 32 + 1) * 32
     elif height % 32 != 0:
-        print("The height is not divisible by 32, rounding up to the nearest multiple of 32")
         height = (height // 32 + 1) * 32
+        print("The height is not divisible by 32, rounding up to the nearest multiple:", height)
         
-
     video_files = [f for f in os.listdir(input_path) if f.endswith(('.mp4', '.avi', '.mkv', '.mov'))]
     video_files.sort()
 

@@ -47,14 +47,12 @@ class VideoDecodeStream:
         return cv2.VideoWriter_fourcc(*'mp4v')
     
 class DepthScanStream:
-    def __init__(self, model_type, half, video_stream):
+    def __init__(self,half, video_stream, model, device):
         self.depth_buffer = []
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True).to(self.device)
-        self.model.eval()
         self.half = half
         self.video_stream = video_stream
-        
+        self.model = model
+        self.device = device
         # One frame has to be initilized otherwise the for loop will just skip it and imshow will go nutzzzz
         # This can be potentially bad on I/O bound systems, but it's the only way I found to make it work
         frame = self.video_stream.read()
@@ -100,9 +98,10 @@ class DepthScanStream:
         return self.depth_buffer.pop(0) if self.depth_buffer else None
 
 def depth_extract_video(video_file, output_path, width, height, half, nt, verbose, model_type):
+    model, device = load_model(model_type)
     video_stream = VideoDecodeStream(video_file, width, height)
     video_stream.start()
-    depth_stream = DepthScanStream(model_type, half, video_stream)
+    depth_stream = DepthScanStream(half, video_stream, model, device)
     depth_stream.start()
     
     out = cv2.VideoWriter(output_path, video_stream.get_fourcc(), video_stream.get_fps(), (width, height), isColor=False)
@@ -129,3 +128,13 @@ def depth_extract_video(video_file, output_path, width, height, half, nt, verbos
     cv2.destroyAllWindows()
     total_process_time = time.time() - start_time
     print(f"Process done in {total_process_time:.2f} seconds")
+
+def load_model(model_type):
+    " Had to separate load model from videodepthstream because of new users who had to download the model first could run into issues with timing "
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True).to(device)
+    #model = torch.hub.load("facebookresearch/dinov2", model="dinov2_vitl14").to(device) WTH is this model?? WHY DO I NEED 2 MODELS TO DO ONE JOB???
+    model.eval()
+    model.cuda()
+    
+    return model, device
