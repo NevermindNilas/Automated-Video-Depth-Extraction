@@ -101,11 +101,12 @@ class DepthScanStream:
 
 def depth_extract_video(video_file, output_path, width, height, half, nt, verbose, model_type):
     video_stream = VideoDecodeStream(video_file, width, height)
-    out = cv2.VideoWriter(output_path, video_stream.get_fourcc(), video_stream.get_fps(), (width, height), isColor=False)
-    start_time = time.time()
     video_stream.start()
     depth_stream = DepthScanStream(model_type, half, video_stream)
     depth_stream.start()
+    
+    out = cv2.VideoWriter(output_path, video_stream.get_fourcc(), video_stream.get_fps(), (width, height), isColor=False)
+    start_time = time.time()
 
     i = 0 # for fps calculation
     while True:
