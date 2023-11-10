@@ -1,29 +1,16 @@
-import torch
-import torchvision.transforms as transforms
 import argparse
 import os
 import sys
 from depth_extract import depth_extract_video
-from deflicker import depth_extract_deflicker
 
 import warnings # Getting rid of that annoying warning
 warnings.filterwarnings("ignore", message="Mapping deprecated model name vit_base_resnet50_384 to current vit_base_r50_s16_384.orig_in21k_ft_in1k.")
 
-def load_device(model_type):
-    '''
-    I've sort of figured out why other version of Midas wouldn't work,
-    it seems like the only compatible version of the library timm that works with
-    Midas models 3.1 is timm 0.6.7.
-    
-    Sadly, whilst I would love to downgrade from the latest available version of timm,
-    the performance degradation is too much to ignore, so I'll have to stick with the
-    current version.
-    '''
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = torch.hub.load("intel-isl/MiDaS", model_type, pretrained=True).to(device)
-    model.eval()
-    
-    return device, model
+'''
+So the current idea is separating Decoding, Processing and Ecoding into 3 different concurrent threads or processes that
+can be run in parallel, the decoding thread will decode the video and store the frames in a buffer ( already done), the processing thread
+will do the depth scanning ( done now ) and store the depth frames in a buffer, and the encoding thread will encode the depth frames ( TO DO )
+'''
 
 def main(deflicker, half, model_type, height, width, nt, verbose):
     input_path = os.path.join('.', "input")
@@ -32,18 +19,17 @@ def main(deflicker, half, model_type, height, width, nt, verbose):
     os.makedirs(output_path, exist_ok=True)
 
     if nt >= 2:
-        print( "====> Number of Extraction threads was set to --", nt, "-- any value equal or greater than 2 might saturate the cuda core count")
+        print( "Number of Extraction threads was set to --", nt, "-- any value equal or greater than 2 might saturate the cuda core count")
     
     if width is None or height is None:
-        sys.exit("====> You must specify both width and height <====")
+        sys.exit("You must specify both width and height")
     elif width % 32 != 0:
-        print("====> The width is not divisible by 32, rounding up to the nearest multiple of 32 <====")
+        print("The width is not divisible by 32, rounding up to the nearest multiple of 32")
         width = (width // 32 + 1) * 32
     elif height % 32 != 0:
-        print("====> The height is not divisible by 32, rounding up to the nearest multiple of 32 <====")
+        print("The height is not divisible by 32, rounding up to the nearest multiple of 32")
         height = (height // 32 + 1) * 32
         
-    device, model = load_device(model_type)
 
     video_files = [f for f in os.listdir(input_path) if f.endswith(('.mp4', '.avi', '.mkv', '.mov'))]
     video_files.sort()
@@ -51,16 +37,18 @@ def main(deflicker, half, model_type, height, width, nt, verbose):
     if not video_files:
         sys.exit("No videos found in the input folder")
 
-    for i, video_file in enumerate(video_files):
+    for i,video_file in enumerate(video_files):
         output = os.path.splitext(video_file)[0] + ".mp4"
         output_path = os.path.join(output_path, output)
         video_file = os.path.join(input_path, video_file)
+        
+        print("\n") 
+        print("===================================================================")
+        print("Processing Video File:", os.path.basename(video_file))
+        print("===================================================================")
         print("\n") # Force new line for each video to make it more user readable
-        print("====> Processing Video File:", os.path.basename(video_file), "<====")
-        if deflicker == "True":
-            depth_extract_deflicker(video_file, output_path, width, height, model, device, half, verbose)
-        else:
-            depth_extract_video(video_file, output_path, width, height, model, device, half, nt, verbose)
+         
+        depth_extract_video(video_file, output_path, width, height, half, nt, verbose, model_type)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
