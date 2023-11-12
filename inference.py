@@ -51,8 +51,8 @@ def main(deflicker, half, model_type, height, width, nt, verbose):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Contact Sheet Generator")
-    parser.add_argument('-width', type=int, help="Width of the corresponding output, must be a multiple of 32", default=None)
-    parser.add_argument("-height", type=int, help="Height of the corresponding output, must be a multiple of 32", default=None)
+    parser.add_argument('-width', type=int, help="Width of the corresponding output, must be a multiple of 32", default=1280)
+    parser.add_argument("-height", type=int, help="Height of the corresponding output, must be a multiple of 32", default=736)
     parser.add_argument('-model_type', required=False, type=str, help="Which MIDAS model to choose from, e.g DPT_Large, DPT_Hybrid or MiDas_small.", default="DPT_Hybrid", action="store")
     parser.add_argument('-half', type=str, help="Cuda half mode, more performance for hardly less quality, False or True, True by default", default="True", action="store")
     parser.add_argument('-deflicker', type=str, help="deflicker the depth scan in order to normalize the output, True or False", default="False", action="store")
