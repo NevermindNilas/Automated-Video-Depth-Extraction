@@ -5,7 +5,6 @@ import time
 from threading import Thread
 from tqdm import tqdm
 from torch.nn import functional as F
-from queue import Queue, Empty
 
 
 class VideoDecodeStream:
