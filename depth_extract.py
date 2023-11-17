@@ -129,10 +129,7 @@ def depth_extract_video(video_file, output_path, width, height, half, nt, verbos
         if depth_frame is None and depth_stream.stopped == True:
             break
         elif verbose == "True" and depth_frame is not None:
-            try:
-                cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
-            except:
-                pass
+            cv2.imshow('Depth, press CTRL + C inside the terminal to exit', depth_frame)
             
         out.write(depth_frame)
         
